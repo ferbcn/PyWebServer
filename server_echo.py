@@ -28,7 +28,6 @@ class TCPServer:
                   break
 
 
-
 if __name__ == "__main__":
     myserver = TCPServer()
     myserver.start()

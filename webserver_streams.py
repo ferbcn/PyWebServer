@@ -1,5 +1,7 @@
 """
 # Python WebServer From Scratch serving html and images using streams and asyncio library
+# Allows multiple connections and clinets at the same time thanks to the asyncio library magic.
+# Server shutdown via Ctrl-C or http GET request with "quit" in the url path
 """
 
 import sys
@@ -12,7 +14,6 @@ import time
 
 # Asynchronous (aka non-blocking) webserver using asyncio
 class TCPServerAsync():
-
     def __init__(self):
         pass
 
@@ -23,8 +24,8 @@ class TCPServerAsync():
         data = await reader.read(100)
         print("Data received!")
         print(data)
-        # TO-DO handle timeout if client opens connection but doesnt send any data or request
         request = HTTPRequest(data.decode())
+        # Check for shutdown command in the url
         try:
             command = request.uri.strip('/')
         except AttributeError:
@@ -34,8 +35,9 @@ class TCPServerAsync():
         if command == "quit":
             response_line, response_headers, blank_line, response_body = self.handle_shutdown()
         else:
-            response_line, response_headers, blank_line, response_body = self.handle_request(data.decode())
+            response_line, response_headers, blank_line, response_body = self.handle_request(request)
 
+        # send response
         response_data = response_line.encode() + response_headers.encode() + blank_line.encode()
         writer.write(response_data)
         writer.write(response_body)
@@ -76,8 +78,7 @@ class HTTPServer(TCPServerAsync):
             503: 'Not Available',
         }
 
-    def handle_request(self, data):
-        request = HTTPRequest(data)
+    def handle_request(self, request):
         try:
             handler = getattr(self, f'handle_{request.method}')
         except AttributeError:
@@ -120,7 +121,6 @@ class HTTPServer(TCPServerAsync):
             filename = "index.html"
         filepath = os.getcwd() + '/static/' + filename
         print("HTTP GET: ", filename)
-        #filepath = os.path.join(staticdir, filename)
         print("Opening file at: ", filepath)
 
         if os.path.exists(filepath):
@@ -165,16 +165,11 @@ class HTTPServer(TCPServerAsync):
 
 
     def response_line(self, status_code):
-        """Returns response line"""
         reason = self.status_codes[status_code]
         return f"HTTP/1.1 {status_code} {reason}\r\n"
 
 
     def response_headers(self, extra_headers=None):
-        """Returns headers
-        The extra_headers can be a dict for sending
-        extra headers for the current response
-        """
         headers_copy = self.headers.copy() # make a local copy of headers
         if extra_headers:
             headers_copy.update(extra_headers)
@@ -190,8 +185,7 @@ class HTTPRequest:
         self.method = None
         self.uri = None
         self.http_version = '1.1' # default to HTTP/1.1 if request doesn't provide a version
-        self.headers = {} # a dictionary for headers
-        # call self.parse method to parse the request data
+        self.headers = {}
         self.parse(data)
 
     def parse(self, data):
@@ -210,15 +204,15 @@ class HTTPRequest:
 
 
 if __name__ == "__main__":
-
+    # get command line parameters host and port
     try:
         script, host, port = sys.argv
-    except ValueError:
+    except ValueError: #otherwise set default
         host='127.0.0.1'
         port='8888'
 
     myserver = HTTPServer()
     try:
         asyncio.run(myserver.start(host, port))
-    except KeyboardInterrupt:
+    except KeyboardInterrupt: # catch KeyboardInterrupts
         print("Ctrl-C pressed. Bye!")

@@ -154,7 +154,7 @@ class HTTPServer(TCPServer):
         The extra_headers can be a dict for sending
         extra headers for the current response
         """
-        headers_copy = self.headers.copy() # make a local copy of headers
+        headers_copy = self.headers.copy()
         if extra_headers:
             headers_copy.update(extra_headers)
         new_headers = ""
@@ -169,8 +169,7 @@ class HTTPRequest:
         self.method = None
         self.uri = None
         self.http_version = '1.1' # default to HTTP/1.1 if request doesn't provide a version
-        self.headers = {} # a dictionary for headers
-        # call self.parse method to parse the request data
+        self.headers = {}
         self.parse(data)
 
     def parse(self, data):
@@ -180,7 +179,6 @@ class HTTPRequest:
 
     def parse_request_line(self, request_line):
         words = request_line.split(' ')
-        #print("WORDS: ", words)
         self.method = words[0]
         self.uri = words[1]
 

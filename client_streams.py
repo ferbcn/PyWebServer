@@ -14,8 +14,7 @@ async def print_http_headers(url, port):
             readers.append(reader)
             writers.append(writer)
 
-            # Leav connections open
-
+        # Leave connections open for test purpose
         await asyncio.sleep(5)
 
         for i in range(100):
